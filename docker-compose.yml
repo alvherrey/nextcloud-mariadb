@@ -1,0 +1,70 @@
+# NextCLoud with MariaDB/MySQL
+#
+# Access via "http://localhost:80" (or "http://$(docker-machine ip):8001" if using docker-machine)
+#
+# During initial NextCLoud setup, select "Storage & database" --> "Configure the database" --> "MySQL/MariaDB"
+# Database user: nextcloud
+# Database password: nextcloud
+# Database name: nextcloud
+# Database host: replace "localhost" with "mariadb" the same name as the data base container name.
+#
+#
+# The reason for the more refined data persistence in the volumes is because if you were to
+# use just the the '/var/www/html' then everytime you would want/need to update/upgrade
+# NextCloud you would have to go into the volume on the host machine and delete 'version.php'
+#
+
+version: '3.9'
+services:
+  nextcloud:
+    container_name: nextcloud
+    restart: unless-stopped
+    image: nextcloud:24.0.5-apache
+    ports:
+      - 8001:80
+    volumes:
+      - nextcloud_upgrade:/var/www/html
+      - nextcloud_apps:/var/www/html/custom_apps
+      - nextcloud_config:/var/www/html/config
+      - /media/data/nextcloud:/var/www/html/data
+    networks:
+      - nginx_network
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 5
+        max-size: 10m
+    depends_on:
+      - mariadb
+  mariadb:
+    container_name: mariadb
+    restart: unless-stopped
+    image: linuxserver/mariadb:10.5.17
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud
+    volumes:
+      - mariadb_data:/config
+    ports:
+      - 3306:3306
+    networks:
+      - nginx_network
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 5
+        max-size: 10m
+volumes:
+  nextcloud_upgrade:
+    external: true
+  nextcloud_apps:
+    external: true
+  nextcloud_config:
+    external: true
+  mariadb_data:
+    external: true
+networks:
+  nginx_network:
+    external: true
